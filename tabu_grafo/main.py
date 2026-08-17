@@ -34,7 +34,7 @@ def exibir_grafo_completo(dg):
     plt.show()
 
 
-def exibir_caminho(dg, caminho, param):
+def exibir_caminho(dg, caminho):
     fig = plt.figure(figsize=(16, 7))
     gs = gridspec.GridSpec(1, 2, width_ratios=[2.5, 1])
 
@@ -73,11 +73,9 @@ def exibir_caminho(dg, caminho, param):
     ntx.draw_networkx_edge_labels(dg, pos, edge_labels=edge_labels, 
                                 font_size=6, ax=ax1)
 
-    titulo_dist = f'Menor Caminho: {caminho[0]} → {caminho[len(caminho)-1]} (Distância: {dist_total:.2f} Km)'
-    titulo_traf = f'Menor Caminho: {caminho[0]} → {caminho[len(caminho)-1]} (Trafego: {traf_total:.2f} %)'
+    titulo = f'Menor Caminho: {caminho[0]} → {caminho[len(caminho)-1]} (Distância: {dist_total:.2f} Km)'
 
-    ax1.set_title(titulo_dist if param == 'dist' else titulo_traf, 
-                fontsize=12, fontweight='bold')
+    ax1.set_title(titulo, fontsize=12, fontweight='bold')
     ax1.axis('off')
 
     if caminho:
@@ -131,7 +129,30 @@ def exibir_caminho(dg, caminho, param):
     plt.tight_layout()
     plt.show()
 
+def funcao_custo(dg, caminho):
+    total_dist = sum(float(dg[u][v]['dist']) for u, v in zip(caminho, caminho[1:]))*100
+    total_traf = sum(float(dg[u][v]['traf']) for u, v in zip(caminho, caminho[1:]))*100
+
+    custo = (0.5*total_traf)+(0.5*total_dist)
+
+    return custo
+
+def melhor_vizinho(dg, caminhos):
+    melhor = caminhos[0]
+    melhor_valor = funcao_custo(dg, melhor)
+
+    for i in range(1, len(caminhos)):
+        vizinho = caminhos[i]
+        valor_vizinho = funcao_custo(dg, caminhos[i])
+
+        if(valor_vizinho < melhor_valor):
+            melhor_valor = valor_vizinho
+            melhor = vizinho 
+
+    return melhor 
+
 MAX_VERTICES=20
+
 vertices = list(range(MAX_VERTICES))
 
 dg = ntx.Graph()
@@ -144,9 +165,19 @@ for i in range(MAX_VERTICES*2):
     if indice1 != indice2:
         dg.add_edge(vertices[indice1], vertices[indice2], dist=random.randint(0,100)/100, traf=random.randint(0,100)/100)
 
-menor_caminho_distancia = ntx.shortest_path(dg, 1, 8, weight='dist')
-menor_caminho_trafego = ntx.shortest_path(dg, 1, 8, weight='traf')
+origem = random.randint(0, MAX_VERTICES-1)
+destino = 0
 
-exibir_caminho(dg, menor_caminho_distancia, 'dist')
+while True:
+    destino = random.randint(1, MAX_VERTICES-1)
 
+    if(destino != origem and ntx.has_path(dg, origem, destino)):
+        break
 
+caminhos = list(ntx.all_simple_paths(dg, origem, destino))
+
+melhor = melhor_vizinho(dg, caminhos)
+valor_melhor = funcao_custo(dg, melhor)
+
+print(f'Pontuação melhor caminho: {valor_melhor}')   
+exibir_caminho(dg, melhor)
